@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>Chat</title>
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="http://localhost/finalchat/css/chat.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost/finalchat/css/animate.css">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+<!--
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+-->
+    <![endif]-->
+    <style>
+        #tray {
+            height: 46px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10000;
+            overflow: visible;
+        }
+
+        body {
+            position: relative;
+        }
+        #contentWrap{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+
+<div id="nickWrap">
+    <p>Enter a user_id:- </p>
+    <p id="userIdError"></p>
+    <form id="setUserId">
+        <input size="35" id="user_id"/>
+        <input type="submit"/>
+    </form>
+    OR<br>
+    <p>Enter a username:- </p>
+    <p id="nickError"></p>
+    <form id="setNick">
+        <input size="35" id="nickname"/>
+        <input type="submit"/>
+    </form>
+</div>
+
+
+<div id="contentWrap">
+    <nav class="navbar-default navbar-static-side" role="navigation">
+    <div class="chat_box_container">
+        <div class="wall-comment-list">
+            <div class="chat_header_bar">
+                <img class="chat_user_icon" src="http://yetanotherforum.net/forum//Themes/OrangeGrey/icon_useronline.png">
+                <h4 class="chat_block_heading" >Online User </h4>
+            </div>
+            <div class="chat_body_bar">
+                <div class="friend_list_wrapper">
+                    <div class="" id="chat_scrollBar">
+                        <div class="user_online_list search-loading" id="friendList">
+                            <div class="page-header">
+                                <div class="page-header-inner">
+                                    <div class="heading">
+                                        <h2>Online Users</h2>
+                                    </div><!-- /.heading -->
+
+                                    <div class="line">
+                                        <hr>
+                                    </div><!-- /.line -->
+                                </div>
+                            </div>
+                            <div class="list-group lg-alt list_ul_box clearfix" id="online_user">
+                            </div>
+                            <div class="page-header">
+                                <div class="page-header-inner">
+                                    <div class="heading">
+                                        <h2>More Users</h2>
+                                    </div><!-- /.heading -->
+
+                                    <div class="line">
+                                        <hr>
+                                    </div><!-- /.line -->
+                                </div>
+                            </div>
+                            <div class="list-group lg-alt list_ul_box clearfix" id="offline_user">
+                            </div>
+                            <div class="search-loader hide">
+                                <img src="http://www.fraedi.is/grafik/progress48.gif" class="ajax-loader">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="chat_search_box" id="main_chat_bottom_box">
+            <div id="lb_search_box_wrap" class="lb_search_box_wrapper">
+                <div class="lb-input-group">
+                    <input type="text" class="form-control" placeholder="Search..." />
+                    <span class=" form-control-feedback">
+                        <i class="fa fa-search"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+    <div class="chat_user_box" id="chat_user">
+    <div class="chat_right">
+        <div class="chatPanelWrapper clearfix">
+            <div class="chat_userBox clearfix">
+                <div class="user_panel_group">
+
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="clearfix"></div>
+</div>
+</div>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+<script type="text/javascript" src="http://localhost/finalchat/js/jquery.nicescroll.min.js"> </script>
+<script type="text/javascript" src="http://localhost/finalchat/js/jquery.nicescroll.plus.js"> </script>
+<script type="text/javascript" src="http://localhost/finalchat/js/tree.js"> </script>
+
+<!-- my js -->
+<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+
+<script>
+    var socket = io.connect();
+    jQuery(function($) {
+        var socket = io.connect();
+        var $nickForm = $('#setNick');
+        var $nickError = $('#nickError');
+        var $nickBox = $('#nickname');
+
+        var $userIdForm = $('#setUserId');
+        var $userIdError = $('#userIdError');
+        var $user_id = $('#user_id');
+
+        var $myname = $('#myname');
+        var $users = $('#users');
+        var $on_user = $('#on_user');
+        var $messageForm = $('#send-message');
+        var $messageBox = $('#message');
+        var $chat = $('#chat');
+
+        $userIdForm.submit(function(e){
+            e.preventDefault();
+
+            $myname  = $user_id.val();
+            socket.emit('new use0r by id', $myname, function(data){
+                if(data){
+                    $('#nickWrap').hide();
+                    $('#contentWrap').show();
+                    $('#myname').val(data);
+                    $myname = data;
+                } else{
+                    $userIdError.html('User already Login!');
+                }
+            });
+            $user_id.val('');
+        });
+
+        $nickForm.submit(function(e){
+            e.preventDefault();
+
+            $myname  = $nickBox.val();
+            socket.emit('new user', $nickBox.val(), function(data){
+                if(data){
+                    $('#nickWrap').hide();
+                    $('#contentWrap').show();
+                    $('#myname').val($myname);
+                } else{
+                    $nickError.html('That username is already taken!  Try again.');
+                }
+            });
+            $nickBox.val('');
+        });
+
+        socket.on('offline_users', function(data){
+            var html = '';
+            for(var i=1; i < data.length; i++){
+                html += '<a class="list-group-item media" href="javascript:void(0)" data-id="'+data[i]._id+'" id="o_'+data[i]._id+'">'+
+                        '<div class="pull-left media-left">'+
+                        '<img class="img_user" src="http://localhost/finalchat/images/male.png" alt="" width="30" height="30">'+
+                        '</div>'+
+                        '<div class="media-body">'+
+                        '<div class="list-group-item-heading">'+data[i].user_name+'</div>'+
+                        '<small class="list-group-item-time c-gray">'+data[i].time+'</small>'+
+                        '</div>'+
+                        '<div class="clearfix"></div>'+
+                        '</a>'
+            }
+            $('#offline_user').html(html);
+        });
+
+        socket.on('usernames', function(data){
+            var html = '';
+            $.each(data, function(key,val) {
+                if(val.user_name != $myname)
+                    html += '<a class="list-group-item media" href="javascript:void(0)" data-id="'+val._id+'" id="o_'+val._id+'">'+
+                            '<div class="pull-left media-left">'+
+                            '<img class="img_user" src="http://localhost/finalchat/images/male.png" alt="" width="30" height="30">'+
+                            '</div>'+
+                            '<div class="chat_online_user_icon pull-right">'+
+                            '<i class="fa fa-comments-o online_chat" aria-hidden="true"></i>'+
+                            '</div>'+
+                            '<div class="media-body">'+
+                            '<div class="list-group-item-heading">'+val.user_name+'</div>'+
+                            '<small class="list-group-item-time c-gray">'+val.time+'</small>'+
+                            '</div>'+
+                            '<div class="clearfix"></div>'+
+                            '</a>'
+            });
+            $('#online_user').html(html);
+        });
+
+        $(document).on('click','.list_ul_box a', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var name = $(this).find(".list-group-item-heading").html();
+            var id = $(this).data("id");
+            openChatBox(id,name);
+        });
+        
+
+        function openChatBox(id,name){
+
+            if($('#o_'+id).hasClass('open')){
+                $('.chat_box_panel').addClass('open'); // substitute with your own selector
+                $('.ext-dropdown-chat-btn').attr('aria-expanded', true).focus();
+                $("#textSend_" + id).focus();
+            }else {
+
+                $('#o_'+id).addClass('open');
+                $(' <div class="chat_box_panel panel dropdown" id="user_box_' + id + '" > ' +
+                        '<a class="ext-dropdown-chat-btn chat_hs_head" role="button"  data-id="'+ id +'"> ' +
+                        '<span class="status-mark bg-success"></span> ' +
+                        '<span class="user_name">' + name + '</span> ' +
+                        '<span class="chat_close chat_close_btn pull-right"  data-id="'+ id +'"><i class="fa fa-times" aria-hidden="true"></i></span> ' +
+                        '<div class="clearfix"></div> ' +
+                        '</a> ' +
+                        '<div class="chat_dropDown_menu dropdown-menu"> ' +
+                        '<div class="user_chat_discussion"> ' +
+                        '<div class="chat_hs_head panel-heading user_ph clearfix" data-id="'+ id +'"> ' +
+                        '<div class="list-inline-condensed pull-right"> ' +
+                        '<span class="user_action"> ' +
+                        '<a href="#" class="text-default"><i class="fa fa-minus" aria-hidden="true"></i></a> ' +
+                        '</span> ' +
+                        '<span class="user_action"> ' +
+                        '<a href="javascript:void(0)" class="text-default chat_close_btn"  data-id="'+ id +'"><i class="fa fa-times" aria-hidden="true"></i></a> ' +
+                        '</span> ' +
+                        '</div> ' +
+                        '<div class="heading-text"> ' +
+                        '<h4 class="user_name phUn1"> ' +
+                        '<span class="status-mark phM1 bg-success"></span> ' +
+                        '<span> ' +
+                        '<a href="#" class="phu_name">' + name + '</a> ' +
+                        '</span> ' +
+                        '</h4> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '<div class="chat_message_wrapper"> ' +
+                        '<div class="panel-body cmWpB bg_color"> ' +
+                        '<div class="chat_message_body" id="chat_message_body_' + id + '" > ' +
+                        '<div class="chat_message_list"> ' +
+                        '<div id="messages" class="msg_' + id + '"> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '<div class="panel-footer"> ' +
+                        '<div class="input-box"> ' +
+                        '<textarea class="message-input" placeholder="Enter message" id="textSend_' + id + '" >' +
+                        '</textarea>' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div> ' +
+                        '</div>').appendTo($('.user_panel_group'));
+                $('.ext-dropdown-chat-btn').attr('aria-expanded', true).focus();
+                $("#textSend_" + id).focus();
+                $('.chat_box_panel').addClass('open'); // substitute with your own selector
+            }
+        }
+
+
+        $(document).on('click','.chat_box_panel .chat_hs_head', function(e) {
+            var $uId = $(this).attr('data-id');
+            if($('#user_box_'+$uId).hasClass('open')){
+                $('#user_box_'+$uId).removeClass('open');
+            }else{
+                $('#user_box_'+$uId).addClass('open');
+            }
+        });
+
+        $(document).on('click','.chat_close_btn', function(e) {
+            var $uId = $(this).attr('data-id');
+            $('#o_'+$uId).removeClass('open');
+            $('#user_box_'+$uId).remove();
+        });
+
+        $(document).on('keyup','.message-input', function(e) {
+            var c = $(this).attr('id');
+            var fields = c.split(/_/);
+            var i = fields[1];
+            msg = $("#"+c).val();
+
+            socket.emit('oppSocket', i+"-*&"+msg, function(id){
+            });
+
+            if (e.which == 13) {
+                if ($.trim(msg) == '') {
+                    return false;
+                }
+                $('<div class="cm_content clearfix"><div class="message_group mrv1_right"><div class="message_desc clearfix"><div class="smDl_1 sm1_ab"> <span>' + msg +'</span> </div></div> </div> </div>').appendTo( $(".msg_"+ i)).addClass('fadeIn animated');
+                setDate(i);
+                $("#"+c).val('');
+                updateScrollbar(i);
+                socket.emit('send message', i+"-*&"+msg, function(data){
+                    //$chat.append('<span class="error">' + i+" "+msg + "</span><br/>");
+                });
+                return false;
+            }
+        });
+
+        socket.on('typing', function(data) {
+            if(data.msg == ''){
+                $(".msg_"+ data.oppid).find('.typing').remove();
+            }else {
+                if($(".msg_"+ data.oppid +' .cm_content').hasClass('typing')){
+                }else {
+                    $('<div class="cm_content typing clearfix">' +
+                            '<figure class="profile-picture">' +
+                            ' <a class="img_link">' +
+                            ' <img src="http://localhost/finalchat/images/profile-pic.jpg" class="img-responsive" width="30">' +
+                            ' </a> ' +
+                            '</figure> ' +
+                            '<div class="message_group mt0 clearfix"> ' +
+                            '<div class="message_desc msd0_left clearfix"> ' +
+                            '<div class="smDl_1 sm0_ab">' +
+                            ' <span><img src="https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSlWKKXQp8EFiGJIdGP-6oggMnELmJiT8K-X2K3Msz30sx0ftDq"> </span> ' +
+                            ' </div> </div> </div> </div>').appendTo($(".msg_"+ data.oppid)).addClass('fadeIn animated');
+                    updateScrollbar(data.oppid);
+                }
+                //$(".msg_"+ data.oppid).find('.typing').remove();
+            }
+        });
+
+        socket.on('whisper', function(data){
+            openChatBox(data.msg_to,data.name);
+            oppMessage(data.msg,data.msg_to);
+        });
+
+        var
+            d, h, m,
+            i = 0;
+
+
+        function updateScrollbar(i) {
+            $("#chat_message_body_"+i).animate({scrollTop: $("#chat_message_body_"+i).prop("scrollHeight")}, 0);
+        }
+
+        function oppMessage(c,id) {
+                $(".msg_"+ id).find('.typing').remove();
+                $('<div class="cm_content clearfix">' +
+                        '<figure class="profile-picture">' +
+                        ' <a class="img_link">' +
+                        ' <img src="http://localhost/finalchat/images/profile-pic.jpg" class="img-responsive" width="30">' +
+                        ' </a> ' +
+                        '</figure> ' +
+                        '<div class="message_group mt0 clearfix"> ' +
+                        '<div class="message_desc msd0_left clearfix"> ' +
+                        '<div class="smDl_1 sm0_ab">' +
+                        ' <span>'+ c +'</span> ' +
+                        ' </div> </div> </div> </div>').appendTo($(".msg_"+ id)).addClass('fadeIn animated');
+                setDate(id);
+                updateScrollbar(id);
+        }
+
+        function setDate(i){
+            var date = new Date();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var ampm = hours >= 12 ? 'pm' : 'am';
+
+            var date = new Date();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var ampm = hours >= 12 ? 'pm' : 'am';
+
+            var month = date.getMonth();
+            var day = date.getDate();
+            var year = date.getFullYear();
+            var dayname = date.getDay();
+
+            var monthNames = [ "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December" ];
+            var week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+
+            d = new Date();
+            if (m != d.getMinutes()) {
+                m = d.getMinutes();
+                $('<time class="conversation-time"><span class="ct_time">' + week[dayname] + ',' + hours+"."+minutes+ampm + '</span></div>').appendTo($(".msg_"+i +":last"));
+            }
+        }
+
+        socket.on('load old msgs', function(data){
+            for(var i=data.length-1; i >= 0; i--){
+                console.log(data[i]);
+                $chat.append('<span class="msg"><b>' + data[i].msg_from.user_name + ': </b>' + data[i].msg + "</span><br/>");
+            }
+        });
+   });
+
+
+    $(document).ready(function () {
+        scrollHeight = $("#scroll").prop('scrollHeight');
+        $('#scroll').scrollTop(scrollHeight);
+    });
+
+    $(document).ready(function(){
+        resizeContent();
+        $(window).resize(function() {
+            resizeContent();
+        });
+    });
+
+    function resizeContent() {
+        var chatHeight = 250;
+        $height = $(window).height() - chatHeight;
+        $('body div.friend_list_wrapper').height($height);
+        $('body div#chat_scrollBar').height($height);
+    }
+
+</script>
+
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
+
+<script>
+
+    $(document).ready(function() {
+        $("#chat_scrollBar").niceScroll({boxzoom:true});
+    });
+
+    $(document).ready(function () {
+        $('.lt-nav-header .lt-nav .lt-nav-ul li.dropdown').hover(function () {
+            $('ul.dropdown-menu', this).stop(true, true).slideDown('fast');
+            $(this).addClass('open');
+        }, function () {
+            $('ul.dropdown-menu', this).stop(true, true).slideUp('fast');
+            $(this).removeClass('open');
+        });
+
+        $(".comment").shorten({
+            "showChars" :200,
+            "moreText"  : "See More",
+            "lessText"  : "Less"
+        });
+    });
+
+</script>
+</body>
+</html>

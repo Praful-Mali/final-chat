@@ -1,0 +1,205 @@
+<html>
+<head>
+	<title>Chat with socket.io and node.js</title>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<style>
+		body {
+			position: relative;
+		}
+		.scrl{
+			max-height: 300px;
+			overflow-y:scroll;
+		}
+		#chat{
+			height:300px;
+			margin: 3px;
+		}
+		#contentWrap{
+			display: none;
+		}
+		#chatWrap{
+			float: left;
+			border: 1px #000 solid;
+			margin: 4px;
+		}
+		.error{
+			color: red;
+		}
+		.whisper{
+			color: gray;
+			font-style: italic;
+		}
+		.on_user{
+			width: 115px;
+			margin-bottom: 5px;
+			height: 25px;
+		}
+		#typing{
+			color: green;
+		}
+	</style>
+</head>
+<body>
+<div id="nickWrap">
+	<p>Enter a user_id:- </p>
+	<p id="userIdError"></p>
+	<form id="setUserId">
+		<input size="35" id="user_id"/>
+		<input type="submit"/>
+	</form>
+	OR<br>
+	<p>Enter a username:- </p>
+	<p id="nickError"></p>
+	<form id="setNick">
+		<input size="35" id="nickname"/>
+		<input type="submit"/>
+	</form>
+</div>
+
+<div id="contentWrap">
+	<div id="chatWrap">
+		<div id="chat" class="scrl"></div>
+		<div id="typing"></div>
+		<select class="on_user" name="on_user" id="on_user">
+			<option value="">select user</option>
+		</select>
+		<form id="send-message">
+			<input size="35" id="message"/>
+			<input type="submit"/>
+		</form>
+	</div>
+</div>
+<input type="hidden" id="myname" value="">
+<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+	var socket = io.connect();
+
+	jQuery(function($){
+		var socket = io.connect();
+		var $nickForm = $('#setNick');
+		var $nickError = $('#nickError');
+		var $nickBox = $('#nickname');
+
+		var $userIdForm = $('#setUserId');
+		var $userIdError = $('#userIdError');
+		var $user_id = $('#user_id');
+
+		var $myname = $('#myname');
+		var $users = $('#users');
+		var $on_user = $('#on_user');
+		var $messageForm = $('#send-message');
+		var $messageBox = $('#message');
+		var $chat = $('#chat');
+
+		$userIdForm.submit(function(e){
+			e.preventDefault();
+
+			$myname  = $user_id.val();
+			socket.emit('new user by id', $myname, function(data){
+				if(data){
+					$('#nickWrap').hide();
+					$('#contentWrap').show();
+					$('#myname').val(data);
+					$myname = data;
+				} else{
+					$userIdError.html('User already Login!');
+				}
+			});
+			$user_id.val('');
+		});
+
+		$nickForm.submit(function(e){
+			e.preventDefault();
+
+			$myname  = $nickBox.val();
+			socket.emit('new user', $nickBox.val(), function(data){
+				if(data){
+					$('#nickWrap').hide();
+					$('#contentWrap').show();
+					$('#myname').val($myname);
+				} else{
+					$nickError.html('That username is already taken!  Try again.');
+				}
+			});
+			$nickBox.val('');
+		});
+
+		socket.on('usernames', function(data){
+			//var myname = $myname.val();
+			console.log(data);
+
+			data = jQuery.grep(data, function(value) {
+				return value != $myname;
+			});
+			console.log(data);
+
+			var html = '';
+			var on_users = '';//"<option value='#%*'>Msg to Group</option>";
+			for(var i=0; i < data.length; i++){
+				html += data[i] + '<br/>';
+				on_users += "<option value='" + data[i] + "'>"+ data[i] +" </option>";
+			}
+			$users.html(html);
+			$on_user.html(on_users);
+		});
+
+		$messageForm.submit(function(e){
+			e.preventDefault();
+			var selected_user = $('#on_user option:selected').val();
+			displayMsg({msg: $messageBox.val(), msg_to: "Me"});
+
+			socket.emit('send message', selected_user+" "+$messageBox.val(), function(data){
+				$chat.append('<span class="error">' + selected_user+" "+data + "</span><br/>");
+			});
+			$messageBox.val('');
+		});
+
+		socket.on('load old msgs', function(data){
+			for(var i=data.length-1; i >= 0; i--){
+				console.log(data[i]);
+				$chat.append('<span class="msg"><b>' + data[i].msg_from.user_name + ': </b>' + data[i].msg + "</span><br/>");
+			}
+		});
+
+		socket.on('new message', function(data){
+			displayMsg(data);
+		});
+
+		function displayMsg(data){
+			$chat.append('<span class="msg"><b>' + data.msg_to + ': </b>' + data.msg + "</span><br/>");
+		}
+
+		socket.on('whisper', function(data){
+			$chat.append('<span class="whisper"><b>' + data.msg_to + ': </b>' + data.msg + "</span><br/>");
+		});
+
+		/** Person is Typing **/
+		var timeout;
+		function timeoutFunction() {
+			typing = false;
+			socket.emit("typing", false);
+		}
+
+		$('#message').keyup(function() {
+			typing = true;
+			socket.emit('typing', 'typing...');
+			clearTimeout(timeout);
+			timeout = setTimeout(timeoutFunction, 100);
+		});
+
+		socket.on('typing', function(data) {
+			if (data != '') {
+				$('#typing').html(data);
+			} else {
+				$('#typing').html("");
+			}
+		});
+
+	});
+</script>
+</body>
+</html>
+
